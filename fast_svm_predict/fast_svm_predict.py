@@ -138,4 +138,5 @@ def predict_fn(clf, output_type='class'):
         raise NotImplemented(
             f"Output type {output_type} not supported. Only proba, decision_function and class are currently implemented")
 
+    predict = _chain_pred_transformation(predict, jnp.ravel)
     return jit(vmap(predict))

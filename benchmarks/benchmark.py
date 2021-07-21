@@ -44,9 +44,15 @@ for name, clf, (X, _) in benchmark_tests:
     original_time = timeit.Timer(partial(run, clf.predict, X)).timeit(number=REPEATS) / REPEATS
     new_time = timeit.Timer(partial(run, fast_predict, X)).timeit(number=REPEATS) / REPEATS
     
-    n_svs = len(np.ravel(clf.dual_coef_))
+    if original_time > new_time:
+        improvement_factor = original_time / new_time
+    else:
+        improvement_factor = - new_time / original_time
     
-    record = {'name': name, 'size': X.shape[0], 'n_feats': X.shape[1], 'n_svs': n_svs, 'original_time': original_time, 'new_time': new_time}
+    improvement_factor = round(improvement_factor, 2)
+    
+    n_svs = len(np.ravel(clf.dual_coef_))
+    record = {'name': name, 'size': X.shape[0], 'N. features': X.shape[1], 'N. support vectors': n_svs, 'Libsvm': original_time, 'fast_svm_predict': new_time, "improvement": improvement_factor}
     data.append(record)
 
 data_df = pd.DataFrame(data)

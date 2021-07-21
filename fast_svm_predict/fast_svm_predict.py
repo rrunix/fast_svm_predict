@@ -6,10 +6,48 @@ from functools import partial
 import numpy as np
 
 import jax.numpy as jnp
-from jax import jit, vmap
+import jax
 
 
 __ALL__ = ['predict_fn']
+
+
+def _predict_proba(prob_a, prob_b, decision_value):
+    """[summary]
+
+    Args:
+        prob_a ([type]): [description]
+        prob_b ([type]): [description]
+        decision_value ([type]): [description]
+
+    Returns:
+        [type]: [description]
+    """
+
+    fApB = prob_a * decision_value + prob_b
+    prob = jnp.where(fApB >= 0, jnp.exp(-fApB) /
+                     (1.0+jnp.exp(-fApB)), 1.0/(1+jnp.exp(fApB)))
+    return 1 - prob
+
+
+def _prediction_class(decision_function):
+    return jnp.where(decision_function >= 0, 1, 0)
+
+
+def _chain_pred_transformation(decision_function, transformation_function):
+    """[summary]
+
+    Args:
+        decision_function ([type]): [description]
+        transformation_function ([type]): [description]
+
+    Returns:
+        [type]: [description]
+    """
+    def apply(X):
+        return transformation_function(decision_function(X))
+
+    return apply
 
 
 def _fast_predict_rbf_impl(alphas, svs, b, gamma, X):
@@ -50,44 +88,7 @@ def _fast_predict_poly_impl(alphas, svs, b, degree, X):
     pass
 
 
-def _predict_proba(prob_a, prob_b, decision_value):
-    """[summary]
-
-    Args:
-        prob_a ([type]): [description]
-        prob_b ([type]): [description]
-        decision_value ([type]): [description]
-
-    Returns:
-        [type]: [description]
-    """
-
-    fApB = prob_a * decision_value + prob_b
-    prob = jnp.where(fApB >= 0, jnp.exp(-fApB)/(1.0+jnp.exp(-fApB)), 1.0/(1+jnp.exp(fApB)))
-    return 1 - prob
-
-
-def _prediction_class(decision_function):
-    return jnp.where(decision_function >= 0, 1, 0)
-
-
-def _chain_pred_transformation(decision_function, transformation_function):
-    """[summary]
-
-    Args:
-        decision_function ([type]): [description]
-        transformation_function ([type]): [description]
-
-    Returns:
-        [type]: [description]
-    """
-    def apply(X):
-        return transformation_function(decision_function(X))
-
-    return apply
-
-
-def predict_fn(clf, output_type='class'):
+def predict_fn(clf, output_type='class', jit=True, batch=True):
     """[summary]
 
     Args:
@@ -138,5 +139,12 @@ def predict_fn(clf, output_type='class'):
         raise NotImplemented(
             f"Output type {output_type} not supported. Only proba, decision_function and class are currently implemented")
 
-    predict = _chain_pred_transformation(predict, jnp.ravel)
-    return jit(vmap(predict))
+    predict_fn = _chain_pred_transformation(predict, jnp.ravel)
+
+    if batch:
+        predict_fn = jax.vmap(predict_fn)
+
+    if jit:
+        predict_fn = jax.jit(predict_fn)
+
+    return predict_fn

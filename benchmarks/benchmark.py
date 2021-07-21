@@ -14,7 +14,7 @@ from datasets import DATASETS
 REPEATS = 10
 
 STORE_MODELS = '_models_cache.pkl'
-STORE_BENCHMARK = 'benchmark_{}'.format(str(datetime.now()))
+STORE_BENCHMARK = 'data/benchmark_{}'.format(str(datetime.now()))
 
 
 # Create model and prediction functions
@@ -71,4 +71,4 @@ for name, clf, (X, _) in benchmark_tests:
 
 
 with open(STORE_BENCHMARK, 'w') as fout:
-    json.dump(data, fout)
+    json.dump(data, fout, indent=3)

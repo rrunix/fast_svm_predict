@@ -10,7 +10,7 @@ setup(
     description="Fast SVM predictions",
     long_description=README,
     long_description_content_type="text/markdown",
-    url="https://github.com/realpython/reader",
+    url="https://github.com/rrunix/fast_svm_predict",
     author="Ruben Rodriguez",
     author_email="ruben.rrf93@gmail.com",
     license="MIT",

@@ -2,9 +2,10 @@ import timeit
 from functools import partial
 import pickle
 import os
+from datetime import datetime
+import json
 
 import numpy as np
-import pandas as pd
 from fast_svm_predict import predict_fn
 from sklearn.svm import SVC
 
@@ -13,6 +14,7 @@ from datasets import DATASETS
 REPEATS = 10
 
 STORE_MODELS = '_models_cache.pkl'
+STORE_BENCHMARK = 'benchmark_{}'.format(str(datetime.now()))
 
 
 # Create model and prediction functions
@@ -65,9 +67,8 @@ for name, clf, (X, _) in benchmark_tests:
         
         n_svs = len(np.ravel(clf.dual_coef_))
         record = {'name': name, 'size': X.shape[0], 'test_size': test_size, 'N. features': X.shape[1], 'N. support vectors': n_svs, 'Libsvm': original_time, 'fast_svm_predict': new_time, "improvement": improvement_factor}
-        print(record)
-        
         data.append(record)
 
-data_df = pd.DataFrame(data)
-print(data_df.to_markdown(index=False))
+
+with open(STORE_BENCHMARK, 'w') as fout:
+    json.dump(data, fout)

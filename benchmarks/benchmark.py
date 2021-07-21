@@ -37,23 +37,37 @@ def run(fn, X):
     fn(X)
 
 data = []
+test_sizes_porc = (0.001, 0.01, 0.1, 0.5, 1)
+
 print("Running benchmark")
 
 for name, clf, (X, _) in benchmark_tests:
     fast_predict = predict_fn(clf, output_type='class')
-    original_time = timeit.Timer(partial(run, clf.predict, X)).timeit(number=REPEATS) / REPEATS
-    new_time = timeit.Timer(partial(run, fast_predict, X)).timeit(number=REPEATS) / REPEATS
+    size = X.shape[0]
     
-    if original_time > new_time:
-        improvement_factor = original_time / new_time
-    else:
-        improvement_factor = - new_time / original_time
+    for porc in test_sizes_porc:
+        if porc * size < 1:
+            continue
+        
+        test_size = int(porc * size)
+        
+        X_frac = X[:test_size]
     
-    improvement_factor = round(improvement_factor, 2)
-    
-    n_svs = len(np.ravel(clf.dual_coef_))
-    record = {'name': name, 'size': X.shape[0], 'N. features': X.shape[1], 'N. support vectors': n_svs, 'Libsvm': original_time, 'fast_svm_predict': new_time, "improvement": improvement_factor}
-    data.append(record)
+        original_time = timeit.Timer(partial(run, clf.predict, X_frac)).timeit(number=REPEATS) / REPEATS
+        new_time = timeit.Timer(partial(run, fast_predict, X_frac)).timeit(number=REPEATS) / REPEATS
+        
+        if original_time > new_time:
+            improvement_factor = original_time / new_time
+        else:
+            improvement_factor = - new_time / original_time
+        
+        improvement_factor = round(improvement_factor, 2)
+        
+        n_svs = len(np.ravel(clf.dual_coef_))
+        record = {'name': name, 'size': X.shape[0], 'test_size': test_size, 'N. features': X.shape[1], 'N. support vectors': n_svs, 'Libsvm': original_time, 'fast_svm_predict': new_time, "improvement": improvement_factor}
+        print(record)
+        
+        data.append(record)
 
 data_df = pd.DataFrame(data)
-print(data_df.to_markdown())
+print(data_df.to_markdown(index=False))
